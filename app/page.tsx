@@ -6,19 +6,21 @@ import { parseEther, formatEther } from 'viem';
 import { base } from 'wagmi/chains';
 import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
-import sdk from '@farcaster/frame-sdk'; // IMPORT SDK
+import sdk from '@farcaster/frame-sdk';
 import { ABI } from './abi';
 
-const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // Base Mainnet Address
+const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // Base Mainnet
 const MAX_CHARS = 20000;
 
 // --- COMPONENTS ---
 const StatusBar = ({ activeAuthor }: { activeAuthor: string | null }) => {
   if (!activeAuthor) return null; 
   return (
-    <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-stone-900/90 backdrop-blur text-white px-4 py-2 rounded-full text-[10px] md:text-xs font-mono shadow-xl z-50 animate-fade-in-up pointer-events-none transition-opacity duration-300 flex items-center gap-2 border border-white/10">
-      <span className="opacity-60 uppercase tracking-wider">Written by</span>
-      <span className="text-amber-400 font-bold"><Identity address={activeAuthor as `0x${string}`}><Name /> <Address /></Identity></span>
+    <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-stone-900/95 backdrop-blur-md text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-mono shadow-2xl z-50 animate-fade-in-up pointer-events-none transition-opacity duration-300 flex items-center gap-3 border border-white/10 ring-1 ring-black/20">
+      <span className="opacity-60 uppercase tracking-widest text-[9px]">Written by</span>
+      <span className="text-amber-400 font-bold flex items-center gap-2">
+        <Identity address={activeAuthor as `0x${string}`}><Avatar className="w-4 h-4 rounded-full border border-amber-400/30" /><Name /> <Address /></Identity>
+      </span>
     </div>
   );
 };
@@ -33,12 +35,12 @@ const Spinner = () => (
 export default function OnchainScroll() {
   const [mounted, setMounted] = useState(false);
   
-  // 1. INITIALIZE FARCASTER SDK & MOUNT STATE
+  // 1. INITIALIZE FARCASTER SDK
   useEffect(() => {
     const load = async () => {
       setMounted(true);
       try {
-        await sdk.actions.ready(); // Tells Warpcast the app is loaded
+        await sdk.actions.ready(); 
       } catch (err) {
         console.warn("Not running in Farcaster context", err);
       }
@@ -62,8 +64,6 @@ export default function OnchainScroll() {
   const [isJumpOpen, setIsJumpOpen] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
   const [jumpError, setJumpError] = useState<string | null>(null);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // --- DATA ---
   const { data: appendFee } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'appendFee' });
@@ -124,7 +124,6 @@ export default function OnchainScroll() {
       setTextInput('');
       setChapterTitleInput('');
       setMode('APPEND');
-      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       setTimeout(() => refetch(), 2000); 
 
     } catch (err) {
@@ -158,12 +157,6 @@ export default function OnchainScroll() {
     setSelectedAuthor(selectedAuthor === author ? null : author);
   };
 
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextInput(e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; 
-  };
-
   const formatFee = (val: bigint | undefined) => {
     if (!val) return '...';
     return `${formatEther(val)} ETH`;
@@ -182,7 +175,7 @@ export default function OnchainScroll() {
 
   return (
     <div 
-      className={`min-h-screen font-serif transition-colors duration-500 pb-80 ${mode === 'NEW_CHAPTER' ? 'bg-stone-100' : 'bg-[#f6f3eb]'}`}
+      className={`min-h-screen font-serif transition-colors duration-500 pb-96 ${mode === 'NEW_CHAPTER' ? 'bg-stone-50' : 'bg-[#f6f3eb]'}`}
       onClick={() => setSelectedAuthor(null)}
     >
       
@@ -207,23 +200,20 @@ export default function OnchainScroll() {
           <div className="flex items-center gap-2">
             <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
             {mounted && (
-                <div className="flex gap-2">
-                    {/* SINGLE WALLET BUTTON - HANDLES BOTH SMART WALLET & INJECTED (METAMASK/WARPCAST) */}
-                    <Wallet>
-                        <ConnectWallet className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-1.5 rounded-full font-sans text-xs font-bold shadow-sm">
-                            <Avatar className="h-5 w-5 rounded-full" />
-                            <Name className="ml-2" />
-                        </ConnectWallet>
-                        <WalletDropdown>
-                            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                                <Avatar />
-                                <Name />
-                                <Address />
-                            </Identity>
-                            <WalletDropdownDisconnect />
-                        </WalletDropdown>
-                    </Wallet>
-                </div>
+                <Wallet>
+                    <ConnectWallet className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-1.5 rounded-full font-sans text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95">
+                        <Avatar className="h-5 w-5 rounded-full" />
+                        <Name className="ml-2" />
+                    </ConnectWallet>
+                    <WalletDropdown>
+                        <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                            <Avatar />
+                            <Name />
+                            <Address />
+                        </Identity>
+                        <WalletDropdownDisconnect />
+                    </WalletDropdown>
+                </Wallet>
             )}
           </div>
         </div>
@@ -249,18 +239,21 @@ export default function OnchainScroll() {
 
       {/* 3. SHARE TO FARCASTER */}
       {lastTxHash && (
-        <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2">
-          <button onClick={shareCast} className="bg-[#855DCD] hover:bg-[#7C56C1] text-white pl-6 pr-8 py-3 rounded-full font-bold shadow-2xl flex items-center gap-2 transform hover:scale-105 transition-all group">
-            <span>✨ Share on Farcaster</span>
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3">↗</span>
-          </button>
-          <button onClick={closeShare} className="bg-stone-200 hover:bg-stone-300 text-stone-600 w-12 h-12 rounded-full font-bold shadow-lg flex items-center justify-center transition-colors">✕</button>
+        <div className="fixed bottom-48 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2 w-full max-w-sm px-4">
+          <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200">
+            <button onClick={shareCast} className="flex-1 bg-[#855DCD] hover:bg-[#7C56C1] text-white px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
+                <span>✨ Share Cast</span>
+            </button>
+            <button onClick={closeShare} className="bg-stone-100 hover:bg-stone-200 text-stone-600 w-12 rounded-full font-bold flex items-center justify-center transition-colors">✕</button>
+          </div>
         </div>
       )}
 
       {/* 4. ACTION BAR */}
       {viewingChapterId === Number(currentChapterId) ? (
-        <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.08)]" onClick={(e) => e.stopPropagation()}>
+          
+          {/* TABS */}
           <div className="flex border-b border-stone-100">
             <button onClick={() => setMode('APPEND')} className={`flex-1 py-4 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-1 items-center justify-center ${mode === 'APPEND' ? 'text-stone-900 bg-stone-50 border-b-2 border-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>
               <span>ADD TO CHAPTER ({formatFee(appendFee)})</span>
@@ -269,19 +262,45 @@ export default function OnchainScroll() {
               <span>START NEW CHAPTER ({formatFee(newChapterFee)})</span>
             </button>
           </div>
+
+          {/* INPUT AREA */}
           <div className="p-4 flex gap-3 items-end max-w-xl mx-auto">
             {mode === 'APPEND' ? (
                <div className="flex-1 relative">
-                 <textarea ref={textareaRef} rows={1} placeholder="Write your thoughts, a story, or a message..." className="w-full bg-stone-100 border-0 rounded-xl px-4 py-3.5 pr-16 text-base leading-relaxed outline-none focus:ring-2 focus:ring-stone-900/20 resize-none min-h-[56px] transition-all pl-4 font-serif placeholder-stone-400" value={textInput} onChange={handleInput} />
+                 {/* RESIZABLE INPUT WITH VISIBLE PLACEHOLDER */}
+                 <textarea 
+                   rows={3} // Start with 3 rows so placeholder is visible
+                   placeholder="Write your thoughts, a story, or a message... (Drag corner to resize)" 
+                   // Added: bg-white, border-stone-300, focus:ring-amber-500, resize-y, min-h-[80px]
+                   className="w-full bg-white border border-stone-300 rounded-xl px-4 py-3 pl-12 pr-16 text-base leading-relaxed outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-y min-h-[80px] max-h-[400px] transition-shadow font-serif placeholder-stone-400 shadow-inner" 
+                   value={textInput} 
+                   onChange={(e) => setTextInput(e.target.value)} 
+                 />
                  <div className={`absolute bottom-3 right-3 text-[10px] font-mono ${getCharCountColor()}`}>{textInput.length} / {MAX_CHARS}</div>
                </div>
             ) : (
-               <input type="text" placeholder="Title for the new chapter..." className="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-amber-500/30 text-amber-900 placeholder-amber-900/40 h-[56px] font-serif font-bold" value={chapterTitleInput} onChange={(e) => setChapterTitleInput(e.target.value)} />
+               <input 
+                 type="text" 
+                 placeholder="Title for the new chapter..." 
+                 className="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 pl-12 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 h-[80px] font-serif font-bold shadow-inner" 
+                 value={chapterTitleInput} 
+                 onChange={(e) => setChapterTitleInput(e.target.value)} 
+               />
             )}
-            <button onClick={handleWrite} disabled={isPending || (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)} className={`h-[56px] px-6 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center min-w-[100px] tracking-wide group ${mode === 'NEW_CHAPTER' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-stone-900 hover:bg-stone-800'} disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed`}>
+
+            <button 
+              onClick={handleWrite} 
+              disabled={isPending || (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)} 
+              className={`
+                h-[80px] px-4 rounded-xl font-bold text-white shadow-xl transition-all active:scale-95 flex flex-col items-center justify-center min-w-[100px] tracking-wide group 
+                ${mode === 'NEW_CHAPTER' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-stone-900 hover:bg-stone-800'} 
+                disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
+              `}
+            >
               {isPending ? <Spinner /> : (
                 <>
-                  <span className="text-xs md:text-sm">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE ONCHAIN'}</span>
+                  <span className="text-xs md:text-sm font-black">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE'}</span>
+                  <span className="text-[10px] opacity-80 font-normal">ONCHAIN</span>
                 </>
               )}
             </button>
