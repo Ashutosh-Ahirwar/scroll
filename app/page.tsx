@@ -12,6 +12,19 @@ import { ABI } from './abi';
 const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // Base Mainnet
 const MAX_CHARS = 20000;
 
+// --- ICONS ---
+const ExpandIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
 // --- COMPONENTS ---
 const StatusBar = ({ activeAuthor }: { activeAuthor: string | null }) => {
   if (!activeAuthor) return null; 
@@ -35,21 +48,15 @@ const Spinner = () => (
 export default function OnchainScroll() {
   const [mounted, setMounted] = useState(false);
   
-  // 1. INITIALIZE FARCASTER SDK
   useEffect(() => {
     const load = async () => {
       setMounted(true);
-      try {
-        await sdk.actions.ready(); 
-      } catch (err) {
-        console.warn("Not running in Farcaster context", err);
-      }
+      try { await sdk.actions.ready(); } catch (err) { console.warn("Not in Farcaster", err); }
     };
     load();
   }, []);
 
   const { isConnected } = useAccount();
-  const { connectors, connect } = useConnect();
   const { writeContractAsync, isPending } = useWriteContract(); 
   
   // State
@@ -58,6 +65,7 @@ export default function OnchainScroll() {
   const [mode, setMode] = useState<'APPEND' | 'NEW_CHAPTER'>('APPEND');
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null); 
+  const [isFullScreen, setIsFullScreen] = useState(false); // NEW: Full Screen Mode
   
   // Navigation
   const [viewingChapterId, setViewingChapterId] = useState<number>(1);
@@ -124,6 +132,7 @@ export default function OnchainScroll() {
       setTextInput('');
       setChapterTitleInput('');
       setMode('APPEND');
+      setIsFullScreen(false); // Close modal on success
       setTimeout(() => refetch(), 2000); 
 
     } catch (err) {
@@ -157,11 +166,6 @@ export default function OnchainScroll() {
     setSelectedAuthor(selectedAuthor === author ? null : author);
   };
 
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextInput(e.target.value);
-    // Removed the auto-shrink logic to allow user resizing
-  };
-
   const formatFee = (val: bigint | undefined) => {
     if (!val) return '...';
     return `${formatEther(val)} ETH`;
@@ -174,13 +178,9 @@ export default function OnchainScroll() {
     setLastTxHash(null);
   };
 
-  const closeShare = () => {
-    setLastTxHash(null);
-  };
-
   return (
     <div 
-      className={`min-h-screen font-serif transition-colors duration-500 pb-96 ${mode === 'NEW_CHAPTER' ? 'bg-stone-50' : 'bg-[#f6f3eb]'}`}
+      className={`min-h-screen font-serif transition-colors duration-500 pb-40 ${mode === 'NEW_CHAPTER' ? 'bg-stone-50' : 'bg-[#f6f3eb]'}`}
       onClick={() => setSelectedAuthor(null)}
     >
       
@@ -212,9 +212,7 @@ export default function OnchainScroll() {
                     </ConnectWallet>
                     <WalletDropdown>
                         <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                            <Avatar />
-                            <Name />
-                            <Address />
+                            <Avatar /><Name /><Address />
                         </Identity>
                         <WalletDropdownDisconnect />
                     </WalletDropdown>
@@ -227,8 +225,6 @@ export default function OnchainScroll() {
       {/* 2. CONTENT */}
       <main className="max-w-2xl mx-auto p-8 md:p-16 mt-6 bg-white shadow-xl min-h-[60vh] border border-stone-200/60 rounded-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="absolute inset-0 bg-[#fffdf5] opacity-50 pointer-events-none mix-blend-multiply"></div>
-        
-        {/* IMPROVED: leading-[2.5] fixes the congested text highlighting */}
         <div className="relative z-10 prose prose-xl prose-stone leading-[2.5] text-justify text-stone-800 min-h-[300px] tracking-wide font-serif">
           {filteredEntries.length > 0 ? (
             filteredEntries.map((entry, i) => (
@@ -245,50 +241,55 @@ export default function OnchainScroll() {
 
       {/* 3. SHARE TO FARCASTER */}
       {lastTxHash && (
-        <div className="fixed bottom-48 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2 w-full max-w-sm px-4">
+        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2 w-full max-w-sm px-4">
           <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200">
             <button onClick={shareCast} className="flex-1 bg-[#855DCD] hover:bg-[#7C56C1] text-white px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
                 <span>✨ Share Cast</span>
             </button>
-            <button onClick={closeShare} className="bg-stone-100 hover:bg-stone-200 text-stone-600 w-12 rounded-full font-bold flex items-center justify-center transition-colors">✕</button>
+            <button onClick={() => setLastTxHash(null)} className="bg-stone-100 hover:bg-stone-200 text-stone-600 w-12 rounded-full font-bold flex items-center justify-center transition-colors">✕</button>
           </div>
         </div>
       )}
 
-      {/* 4. ACTION BAR */}
+      {/* 4. COMPACT BOTTOM BAR */}
       {viewingChapterId === Number(currentChapterId) ? (
-        <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.08)]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]" onClick={(e) => e.stopPropagation()}>
           
-          {/* TABS */}
-          <div className="flex border-b border-stone-100">
-            <button onClick={() => setMode('APPEND')} className={`flex-1 py-4 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-1 items-center justify-center ${mode === 'APPEND' ? 'text-stone-900 bg-stone-50 border-b-2 border-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>
-              <span>ADD TO CHAPTER ({formatFee(appendFee)})</span>
+          {/* TABS & EXPAND */}
+          <div className="flex border-b border-stone-100 relative">
+            <button onClick={() => setMode('APPEND')} className={`flex-1 py-3 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-0.5 items-center justify-center ${mode === 'APPEND' ? 'text-stone-900 bg-stone-50 border-b-2 border-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>
+              <span>ADD TO CHAPTER</span>
+              <span className="text-[9px] font-normal opacity-60">({formatFee(appendFee)})</span>
             </button>
-            <button onClick={() => setMode('NEW_CHAPTER')} className={`flex-1 py-4 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-1 items-center justify-center ${mode === 'NEW_CHAPTER' ? 'text-amber-700 bg-amber-50/50 border-b-2 border-amber-600' : 'text-stone-400 hover:text-stone-600'}`}>
-              <span>START NEW CHAPTER ({formatFee(newChapterFee)})</span>
+            
+            {/* FULL SCREEN TRIGGER */}
+            <div className="flex items-center justify-center px-2 bg-white border-x border-stone-100">
+                <button onClick={() => setIsFullScreen(true)} className="p-2 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-900 transition-colors" title="Open Full Screen Writer">
+                    <ExpandIcon />
+                </button>
+            </div>
+
+            <button onClick={() => setMode('NEW_CHAPTER')} className={`flex-1 py-3 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-0.5 items-center justify-center ${mode === 'NEW_CHAPTER' ? 'text-amber-700 bg-amber-50/50 border-b-2 border-amber-600' : 'text-stone-400 hover:text-stone-600'}`}>
+              <span>START NEW CHAPTER</span>
+              <span className="text-[9px] font-normal opacity-60">({formatFee(newChapterFee)})</span>
             </button>
           </div>
 
-          {/* INPUT AREA */}
-          <div className="p-4 flex gap-3 items-end max-w-xl mx-auto">
+          {/* COMPACT INPUT AREA */}
+          <div className="p-3 flex gap-2 items-center max-w-xl mx-auto h-[72px]">
             {mode === 'APPEND' ? (
-               <div className="flex-1 relative">
-                 {/* RESIZABLE INPUT WITH VISIBLE PLACEHOLDER */}
-                 <textarea 
-                   rows={3} // Start with 3 rows so placeholder is visible
-                   placeholder="Write your thoughts, a story, or a message... (Drag corner to resize)" 
-                   // Added: bg-white, border-stone-300, focus:ring-amber-500, resize-y, min-h-[80px]
-                   className="w-full bg-white border border-stone-300 rounded-xl px-4 py-3 pl-12 pr-16 text-base leading-relaxed outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-y min-h-[80px] max-h-[400px] transition-shadow font-serif placeholder-stone-400 shadow-inner" 
-                   value={textInput} 
-                   onChange={(e) => setTextInput(e.target.value)} 
-                 />
-                 <div className={`absolute bottom-3 right-3 text-[10px] font-mono ${getCharCountColor()}`}>{textInput.length} / {MAX_CHARS}</div>
-               </div>
+               <input 
+                 type="text" 
+                 placeholder="Write your thoughts..." 
+                 className="flex-1 bg-white border border-stone-300 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 pl-4 font-serif placeholder-stone-400 shadow-sm" 
+                 value={textInput} 
+                 onChange={(e) => setTextInput(e.target.value)} 
+               />
             ) : (
                <input 
                  type="text" 
-                 placeholder="Title for the new chapter..." 
-                 className="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 pl-12 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 h-[80px] font-serif font-bold shadow-inner" 
+                 placeholder="New Chapter Title..." 
+                 className="flex-1 bg-amber-50 border border-amber-200 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 font-serif font-bold shadow-sm" 
                  value={chapterTitleInput} 
                  onChange={(e) => setChapterTitleInput(e.target.value)} 
                />
@@ -296,24 +297,77 @@ export default function OnchainScroll() {
 
             <button 
               onClick={handleWrite} 
-              disabled={isPending || (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)} 
+              disabled={isPending || (mode === 'APPEND' && !textInput) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)} 
               className={`
-                h-[80px] px-4 rounded-xl font-bold text-white shadow-xl transition-all active:scale-95 flex flex-col items-center justify-center min-w-[100px] tracking-wide group 
+                h-12 px-6 rounded-lg font-bold text-white shadow-md transition-all active:scale-95 flex items-center justify-center min-w-[80px]
                 ${mode === 'NEW_CHAPTER' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-stone-900 hover:bg-stone-800'} 
-                disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
+                disabled:opacity-50 disabled:scale-100
               `}
             >
-              {isPending ? <Spinner /> : (
-                <>
-                  <span className="text-xs md:text-sm font-black">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE ONCHAIN'}</span>
-                </>
-              )}
+              {isPending ? <Spinner /> : <span className="text-xs font-black">WRITE</span>}
             </button>
           </div>
         </div>
       ) : (
         <div className="fixed bottom-0 left-0 w-full bg-stone-100/90 backdrop-blur-md text-stone-500 p-6 text-center text-xs font-sans font-bold border-t border-stone-200 z-50 pb-safe">
           ARCHIVE MODE <span className="mx-2">•</span> <button onClick={() => setViewingChapterId(Number(currentChapterId))} className="text-stone-900 underline underline-offset-4 decoration-stone-400 hover:decoration-stone-900">JUMP TO PRESENT</button>
+        </div>
+      )}
+
+      {/* 5. FULL SCREEN WRITER MODAL */}
+      {isFullScreen && (
+        <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-xl flex flex-col animate-fade-in-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+                <h2 className="text-sm font-sans font-bold tracking-widest text-stone-900 uppercase">
+                    {mode === 'NEW_CHAPTER' ? 'FORGE NEW ERA' : 'INSCRIBE HISTORY'}
+                </h2>
+                <button onClick={() => setIsFullScreen(false)} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-500 transition-colors">
+                    <CloseIcon />
+                </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 p-6 flex flex-col max-w-2xl mx-auto w-full">
+                {mode === 'APPEND' ? (
+                    <div className="flex-1 relative">
+                        <textarea 
+                            autoFocus
+                            className="w-full h-full bg-transparent text-xl md:text-2xl font-serif text-stone-800 placeholder-stone-300 resize-none outline-none leading-relaxed"
+                            placeholder="Start writing your legacy..."
+                            value={textInput}
+                            onChange={(e) => setTextInput(e.target.value)}
+                        />
+                        <div className={`absolute bottom-0 right-0 text-xs font-mono ${getCharCountColor()}`}>{textInput.length} / {MAX_CHARS}</div>
+                    </div>
+                ) : (
+                    <div className="flex-1 flex flex-col justify-center">
+                        <input 
+                            autoFocus
+                            type="text" 
+                            placeholder="Name the new Era..." 
+                            className="w-full bg-transparent text-3xl md:text-4xl font-serif font-bold text-amber-900 placeholder-amber-900/20 outline-none text-center"
+                            value={chapterTitleInput} 
+                            onChange={(e) => setChapterTitleInput(e.target.value)} 
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-stone-100 bg-white pb-safe">
+                <button 
+                    onClick={handleWrite}
+                    disabled={isPending || (mode === 'APPEND' && !textInput) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)}
+                    className={`
+                        w-full py-4 rounded-xl font-bold text-white shadow-xl text-sm tracking-widest uppercase transition-all active:scale-95
+                        ${mode === 'NEW_CHAPTER' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-stone-900 hover:bg-stone-800'}
+                        disabled:opacity-50
+                    `}
+                >
+                    {isPending ? <div className="flex justify-center"><Spinner /></div> : (mode === 'NEW_CHAPTER' ? `START ERA (${formatFee(newChapterFee)})` : `INSCRIBE (${formatFee(appendFee)})`)}
+                </button>
+            </div>
         </div>
       )}
 
