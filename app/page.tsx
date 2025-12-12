@@ -55,6 +55,7 @@ export default function OnchainScroll() {
     load();
   }, []);
 
+  const { isConnected } = useAccount(); // Check connection
   const { writeContractAsync, isPending } = useWriteContract(); 
   
   // State
@@ -98,13 +99,35 @@ export default function OnchainScroll() {
 
   const filteredEntries = chapterEntries || [];
 
-  // --- ACTIONS ---
+  // --- DEBUGGED WRITE FUNCTION ---
   const handleWrite = async () => {
-    if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) return;
-    if (mode === 'NEW_CHAPTER' && !chapterTitleInput) return;
-    if (appendFee === undefined || newChapterFee === undefined) return;
+    console.log("Attempting write...");
+
+    // 1. Check Inputs
+    if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) {
+      console.log("Input invalid or empty");
+      return;
+    }
+    if (mode === 'NEW_CHAPTER' && !chapterTitleInput) {
+      console.log("Chapter title missing");
+      return;
+    }
+
+    // 2. Check Fees (Common Silent Failure)
+    if (appendFee === undefined || newChapterFee === undefined) {
+      alert("Error: Fees not loaded from contract. Check your connection or contract address.");
+      console.error("Fees undefined. Contract Read Failed.");
+      return;
+    }
+
+    // 3. Check Wallet Connection
+    if (!isConnected) {
+      alert("Please connect your wallet first (Click the Connect button in the header).");
+      return;
+    }
 
     try {
+      console.log("Sending transaction...");
       let hash;
       if (mode === 'NEW_CHAPTER') {
         hash = await writeContractAsync({
@@ -126,6 +149,7 @@ export default function OnchainScroll() {
         });
       }
       
+      console.log("Transaction sent:", hash);
       setLastTxHash(hash); 
       setTextInput('');
       setChapterTitleInput('');
@@ -133,8 +157,10 @@ export default function OnchainScroll() {
       setIsFullScreen(false); 
       setTimeout(() => refetch(), 2000); 
 
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Transaction Failed:", err);
+      // Show the actual error message to the user
+      alert(`Transaction Failed: ${err.shortMessage || err.message || "Unknown error"}`);
     }
   };
 
@@ -182,7 +208,7 @@ export default function OnchainScroll() {
       onClick={() => setSelectedAuthor(null)}
     >
       
-      {/* 1. HEADER (Wallet Button Removed) */}
+      {/* 1. HEADER (Wallet Auto-Detect) */}
       <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm transition-all duration-300" onClick={(e) => e.stopPropagation()}>
         <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <button onClick={goPrev} disabled={viewingChapterId <= 1} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">←</button>
