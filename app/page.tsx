@@ -6,9 +6,10 @@ import { parseEther, formatEther } from 'viem';
 import { base } from 'wagmi/chains';
 import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
+import sdk from '@farcaster/frame-sdk'; // IMPORT SDK
 import { ABI } from './abi';
 
-const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // <--- VERIFY THIS
+const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // Base Mainnet Address
 const MAX_CHARS = 20000;
 
 // --- COMPONENTS ---
@@ -31,7 +32,19 @@ const Spinner = () => (
 
 export default function OnchainScroll() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  
+  // 1. INITIALIZE FARCASTER SDK & MOUNT STATE
+  useEffect(() => {
+    const load = async () => {
+      setMounted(true);
+      try {
+        await sdk.actions.ready(); // Tells Warpcast the app is loaded
+      } catch (err) {
+        console.warn("Not running in Farcaster context", err);
+      }
+    };
+    load();
+  }, []);
 
   const { isConnected } = useAccount();
   const { connectors, connect } = useConnect();
@@ -119,23 +132,6 @@ export default function OnchainScroll() {
     }
   };
 
-  // --- WALLET CONNECTION FIX ---
-  const connectBrowserWallet = () => {
-    // 1. Look for the generic 'injected' connector (Warpcast/MetaMask/Phantom)
-    const injectedConnector = connectors.find((c) => c.id === 'injected');
-    
-    // 2. If not found by ID, look for any connector that isn't the Coinbase Smart Wallet
-    const fallbackConnector = connectors.find((c) => c.name !== 'Coinbase Wallet');
-
-    if (injectedConnector) {
-      connect({ connector: injectedConnector });
-    } else if (fallbackConnector) {
-      connect({ connector: fallbackConnector });
-    } else {
-      alert("No browser wallet detected.");
-    }
-  };
-
   const goPrev = () => setViewingChapterId(prev => Math.max(1, prev - 1));
   const goNext = () => setViewingChapterId(prev => Math.min(Number(currentChapterId || 1), prev + 1));
   
@@ -212,17 +208,7 @@ export default function OnchainScroll() {
             <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
             {mounted && (
                 <div className="flex gap-2">
-                    {/* BROWSER WALLET BUTTON (For Warpcast / MetaMask) */}
-                    {!isConnected && (
-                        <button 
-                            onClick={connectBrowserWallet} 
-                            className="bg-stone-200 hover:bg-stone-300 text-stone-600 px-3 py-1.5 rounded-full font-sans text-xs font-bold transition-all"
-                        >
-                            Wallet
-                        </button>
-                    )}
-                    
-                    {/* SMART WALLET BUTTON (OnchainKit) */}
+                    {/* SINGLE WALLET BUTTON - HANDLES BOTH SMART WALLET & INJECTED (METAMASK/WARPCAST) */}
                     <Wallet>
                         <ConnectWallet className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-1.5 rounded-full font-sans text-xs font-bold shadow-sm">
                             <Avatar className="h-5 w-5 rounded-full" />
