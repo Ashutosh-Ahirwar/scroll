@@ -27,11 +27,19 @@ const CloseIcon = () => (
 // --- COMPONENTS ---
 const StatusBar = ({ activeAuthor }: { activeAuthor: string | null }) => {
   if (!activeAuthor) return null; 
+  
+  // Ensure address is formatted correctly for OnchainKit
+  const authorAddress = activeAuthor as `0x${string}`;
+
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-stone-900/95 backdrop-blur-md text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-mono shadow-2xl z-50 animate-fade-in-up pointer-events-none transition-opacity duration-300 flex items-center gap-3 border border-white/10 ring-1 ring-black/20">
       <span className="opacity-60 uppercase tracking-widest text-[9px]">Written by</span>
       <span className="text-amber-400 font-bold flex items-center gap-2">
-        <Identity address={activeAuthor as `0x${string}`}><Avatar className="w-4 h-4 rounded-full border border-amber-400/30" /><Name /> <Address /></Identity>
+        <Identity address={authorAddress}>
+            <Avatar className="w-4 h-4 rounded-full border border-amber-400/30" />
+            <Name /> 
+            <Address className="text-stone-500 !text-[9px]" />
+        </Identity>
       </span>
     </div>
   );
@@ -65,7 +73,7 @@ export default function OnchainScroll() {
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null); 
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null); // NEW: Error State
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); 
   
   // Navigation
   const [viewingChapterId, setViewingChapterId] = useState<number>(1);
@@ -102,21 +110,16 @@ export default function OnchainScroll() {
 
   // --- ACTIONS ---
   const handleWrite = async () => {
-    setErrorMsg(null); // Clear previous errors
+    setErrorMsg(null); 
 
-    // 1. Check Wallet Connection
     if (!isConnected) {
-      setErrorMsg("Wallet disconnected. Please refresh or connect again.");
+      setErrorMsg("Wallet disconnected. Please connect.");
       return;
     }
-
-    // 2. Check Fees
     if (appendFee === undefined || newChapterFee === undefined) {
-      setErrorMsg("Loading fees... Please wait a moment.");
+      setErrorMsg("Loading fees... Please wait.");
       return;
     }
-
-    // 3. Check Inputs
     if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) return;
     if (mode === 'NEW_CHAPTER' && !chapterTitleInput) return;
 
@@ -178,7 +181,12 @@ export default function OnchainScroll() {
   };
 
   const toggleAuthor = (author: string) => {
-    setSelectedAuthor(selectedAuthor === author ? null : author);
+    // If clicking the same author, deselect (null). If new author, select.
+    if (selectedAuthor === author) {
+        setSelectedAuthor(null);
+    } else {
+        setSelectedAuthor(author);
+    }
   };
 
   const formatFee = (val: bigint | undefined) => {
@@ -193,41 +201,55 @@ export default function OnchainScroll() {
     setLastTxHash(null);
   };
 
+  // --- CLICK HANDLER FOR BACKGROUND (DESELECT) ---
+  const handleBackgroundClick = () => {
+    setSelectedAuthor(null); 
+    setErrorMsg(null);
+  };
+
   return (
     <div 
       className={`min-h-screen font-serif transition-colors duration-500 pb-40 ${mode === 'NEW_CHAPTER' ? 'bg-stone-50' : 'bg-[#f6f3eb]'}`}
-      onClick={() => { setSelectedAuthor(null); setErrorMsg(null); }}
+      onClick={handleBackgroundClick} // Root click handler resets state
     >
       
-      {/* 1. HEADER (Wallet Auto-Detect) */}
-      <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm transition-all duration-300" onClick={(e) => e.stopPropagation()}>
+      {/* 1. HEADER */}
+      {/* Removed stopPropagation so clicking empty nav space also closes author view */}
+      <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <button onClick={goPrev} disabled={viewingChapterId <= 1} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">←</button>
+          <button onClick={(e) => { e.stopPropagation(); goPrev(); }} disabled={viewingChapterId <= 1} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">←</button>
           
           <div className="flex-1 flex flex-col items-center justify-center overflow-visible relative">
              <div className="text-[10px] font-sans font-bold text-stone-400 tracking-[0.2em] mb-1">CHAPTER {viewingChapterId}</div>
              {isJumpOpen ? (
-                <form onSubmit={handleJump} className="w-full max-w-[120px] relative">
+                <form onClick={(e) => e.stopPropagation()} onSubmit={handleJump} className="w-full max-w-[120px] relative">
                   <input autoFocus type="number" placeholder="#" className="w-full text-center border-b-2 bg-transparent outline-none font-bold text-lg border-stone-900" value={jumpInput} onChange={e => { setJumpInput(e.target.value); setJumpError(null); }} onBlur={() => setTimeout(() => setIsJumpOpen(false), 200)} />
                 </form>
              ) : (
-                <div onClick={() => setIsJumpOpen(true)} className="w-full flex flex-col items-center cursor-pointer hover:opacity-70 group">
+                <div onClick={(e) => { e.stopPropagation(); setIsJumpOpen(true); }} className="w-full flex flex-col items-center cursor-pointer hover:opacity-70 group">
                   <h1 className="text-stone-900 font-bold text-lg leading-tight truncate w-full text-center max-w-[200px] md:max-w-xs group-hover:underline decoration-stone-300 underline-offset-4 decoration-2">{viewingChapterDetails?.title || "Loading..."}</h1>
                 </div>
              )}
           </div>
 
-          <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
+          <button onClick={(e) => { e.stopPropagation(); goNext(); }} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
         </div>
       </nav>
 
       {/* 2. CONTENT */}
-      <main className="max-w-2xl mx-auto p-8 md:p-16 mt-6 bg-white shadow-xl min-h-[60vh] border border-stone-200/60 rounded-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      {/* Removed stopPropagation from main so background clicks work */}
+      <main className="max-w-2xl mx-auto p-8 md:p-16 mt-6 bg-white shadow-xl min-h-[60vh] border border-stone-200/60 rounded-sm relative overflow-hidden">
         <div className="absolute inset-0 bg-[#fffdf5] opacity-50 pointer-events-none mix-blend-multiply"></div>
         <div className="relative z-10 prose prose-xl prose-stone leading-[2.5] text-justify text-stone-800 min-h-[300px] tracking-wide font-serif">
           {filteredEntries.length > 0 ? (
             filteredEntries.map((entry, i) => (
-               <span key={i} onClick={(e) => { e.stopPropagation(); toggleAuthor(entry.author); }} className={`cursor-pointer decoration-clone px-0.5 rounded-sm transition-all duration-200 whitespace-pre-wrap ${selectedAuthor === entry.author ? "bg-amber-200 text-stone-900 shadow-sm" : "hover:bg-stone-100 hover:text-stone-600"}`}>{entry.text}{" "}</span>
+               <span 
+                 key={i} 
+                 onClick={(e) => { e.stopPropagation(); toggleAuthor(entry.author); }} // Stop propagation here so clicking text selects it
+                 className={`cursor-pointer decoration-clone px-0.5 rounded-sm transition-all duration-200 whitespace-pre-wrap ${selectedAuthor === entry.author ? "bg-amber-200 text-stone-900 shadow-sm" : "hover:bg-stone-100 hover:text-stone-600"}`}
+               >
+                 {entry.text}{" "}
+               </span>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-stone-400 italic font-sans">
@@ -239,19 +261,17 @@ export default function OnchainScroll() {
       </main>
 
       {/* 3. SHARE & ERROR TOASTS */}
-      <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 w-full max-w-sm px-4">
-        
-        {/* Error Toast */}
+      <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 w-full max-w-sm px-4 pointer-events-none">
+        {/* Pointer events none on container, auto on children so clicks pass through empty space */}
         {errorMsg && (
-            <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-xl animate-fade-in-up flex items-center gap-2">
+            <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-xl animate-fade-in-up flex items-center gap-2 pointer-events-auto">
                 <span>⚠️ {errorMsg}</span>
                 <button onClick={() => setErrorMsg(null)} className="opacity-70 hover:opacity-100 ml-2">✕</button>
             </div>
         )}
 
-        {/* Share Button */}
         {lastTxHash && (
-          <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200 animate-bounce-in">
+          <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200 animate-bounce-in pointer-events-auto">
             <button onClick={shareCast} className="flex-1 bg-[#855DCD] hover:bg-[#7C56C1] text-white px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
                 <span>✨ Share Cast</span>
             </button>
@@ -316,13 +336,13 @@ export default function OnchainScroll() {
         </div>
       ) : (
         <div className="fixed bottom-0 left-0 w-full bg-stone-100/90 backdrop-blur-md text-stone-500 p-6 text-center text-xs font-sans font-bold border-t border-stone-200 z-50 pb-safe">
-          ARCHIVE MODE <span className="mx-2">•</span> <button onClick={() => setViewingChapterId(Number(currentChapterId))} className="text-stone-900 underline underline-offset-4 decoration-stone-400 hover:decoration-stone-900">JUMP TO PRESENT</button>
+          ARCHIVE MODE <span className="mx-2">•</span> <button onClick={(e) => { e.stopPropagation(); setViewingChapterId(Number(currentChapterId)); }} className="text-stone-900 underline underline-offset-4 decoration-stone-400 hover:decoration-stone-900">JUMP TO PRESENT</button>
         </div>
       )}
 
       {/* 5. FULL SCREEN WRITER MODAL */}
       {isFullScreen && (
-        <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-xl flex flex-col animate-fade-in-up">
+        <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-xl flex flex-col animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
                 <h2 className="text-sm font-sans font-bold tracking-widest text-stone-900 uppercase">
                     {mode === 'NEW_CHAPTER' ? 'START NEW CHAPTER' : 'ADD TO CHAPTER'}
