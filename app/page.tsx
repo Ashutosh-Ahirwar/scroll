@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useAccount, useReadContract, useWriteContract, useConnect } from 'wagmi'; 
 import { parseEther, formatEther } from 'viem';
 import { base } from 'wagmi/chains';
-import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
 import sdk from '@farcaster/frame-sdk';
 import { ABI } from './abi';
@@ -56,7 +55,6 @@ export default function OnchainScroll() {
     load();
   }, []);
 
-  const { isConnected } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract(); 
   
   // State
@@ -65,7 +63,7 @@ export default function OnchainScroll() {
   const [mode, setMode] = useState<'APPEND' | 'NEW_CHAPTER'>('APPEND');
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null); 
-  const [isFullScreen, setIsFullScreen] = useState(false); // NEW: Full Screen Mode
+  const [isFullScreen, setIsFullScreen] = useState(false);
   
   // Navigation
   const [viewingChapterId, setViewingChapterId] = useState<number>(1);
@@ -132,7 +130,7 @@ export default function OnchainScroll() {
       setTextInput('');
       setChapterTitleInput('');
       setMode('APPEND');
-      setIsFullScreen(false); // Close modal on success
+      setIsFullScreen(false); 
       setTimeout(() => refetch(), 2000); 
 
     } catch (err) {
@@ -184,7 +182,7 @@ export default function OnchainScroll() {
       onClick={() => setSelectedAuthor(null)}
     >
       
-      {/* 1. HEADER */}
+      {/* 1. HEADER (Wallet Button Removed) */}
       <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm transition-all duration-300" onClick={(e) => e.stopPropagation()}>
         <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <button onClick={goPrev} disabled={viewingChapterId <= 1} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">←</button>
@@ -202,23 +200,7 @@ export default function OnchainScroll() {
              )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
-            {mounted && (
-                <Wallet>
-                    <ConnectWallet className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-1.5 rounded-full font-sans text-xs font-bold shadow-sm transition-all hover:scale-105 active:scale-95">
-                        <Avatar className="h-5 w-5 rounded-full" />
-                        <Name className="ml-2" />
-                    </ConnectWallet>
-                    <WalletDropdown>
-                        <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                            <Avatar /><Name /><Address />
-                        </Identity>
-                        <WalletDropdownDisconnect />
-                    </WalletDropdown>
-                </Wallet>
-            )}
-          </div>
+          <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
         </div>
       </nav>
 
@@ -280,15 +262,15 @@ export default function OnchainScroll() {
             {mode === 'APPEND' ? (
                <input 
                  type="text" 
-                 placeholder="Write your thoughts..." 
-                 className="flex-1 bg-white border border-stone-300 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 pl-4 font-serif placeholder-stone-400 shadow-sm" 
+                 placeholder="Write your thoughts, a story, or a message..." 
+                 className="flex-1 bg-white border border-stone-300 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 pl-4 font-serif placeholder-stone-400 shadow-sm pl-12" 
                  value={textInput} 
                  onChange={(e) => setTextInput(e.target.value)} 
                />
             ) : (
                <input 
                  type="text" 
-                 placeholder="New Chapter Title..." 
+                 placeholder="Title for the new chapter..." 
                  className="flex-1 bg-amber-50 border border-amber-200 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 font-serif font-bold shadow-sm" 
                  value={chapterTitleInput} 
                  onChange={(e) => setChapterTitleInput(e.target.value)} 
@@ -304,7 +286,7 @@ export default function OnchainScroll() {
                 disabled:opacity-50 disabled:scale-100
               `}
             >
-              {isPending ? <Spinner /> : <span className="text-xs font-black">WRITE</span>}
+              {isPending ? <Spinner /> : <span className="text-xs font-black">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE ONCHAIN'}</span>}
             </button>
           </div>
         </div>
@@ -317,24 +299,22 @@ export default function OnchainScroll() {
       {/* 5. FULL SCREEN WRITER MODAL */}
       {isFullScreen && (
         <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-xl flex flex-col animate-fade-in-up">
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
                 <h2 className="text-sm font-sans font-bold tracking-widest text-stone-900 uppercase">
-                    {mode === 'NEW_CHAPTER' ? 'FORGE NEW ERA' : 'INSCRIBE HISTORY'}
+                    {mode === 'NEW_CHAPTER' ? 'START NEW CHAPTER' : 'ADD TO CHAPTER'}
                 </h2>
                 <button onClick={() => setIsFullScreen(false)} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-500 transition-colors">
                     <CloseIcon />
                 </button>
             </div>
 
-            {/* Modal Content */}
             <div className="flex-1 p-6 flex flex-col max-w-2xl mx-auto w-full">
                 {mode === 'APPEND' ? (
                     <div className="flex-1 relative">
                         <textarea 
                             autoFocus
                             className="w-full h-full bg-transparent text-xl md:text-2xl font-serif text-stone-800 placeholder-stone-300 resize-none outline-none leading-relaxed"
-                            placeholder="Start writing your legacy..."
+                            placeholder="Write your thoughts, a story, or a message..."
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
                         />
@@ -345,7 +325,7 @@ export default function OnchainScroll() {
                         <input 
                             autoFocus
                             type="text" 
-                            placeholder="Name the new Era..." 
+                            placeholder="Title for the new chapter..." 
                             className="w-full bg-transparent text-3xl md:text-4xl font-serif font-bold text-amber-900 placeholder-amber-900/20 outline-none text-center"
                             value={chapterTitleInput} 
                             onChange={(e) => setChapterTitleInput(e.target.value)} 
@@ -354,7 +334,6 @@ export default function OnchainScroll() {
                 )}
             </div>
 
-            {/* Modal Footer */}
             <div className="p-6 border-t border-stone-100 bg-white pb-safe">
                 <button 
                     onClick={handleWrite}
@@ -365,7 +344,7 @@ export default function OnchainScroll() {
                         disabled:opacity-50
                     `}
                 >
-                    {isPending ? <div className="flex justify-center"><Spinner /></div> : (mode === 'NEW_CHAPTER' ? `START ERA (${formatFee(newChapterFee)})` : `INSCRIBE (${formatFee(appendFee)})`)}
+                    {isPending ? <div className="flex justify-center"><Spinner /></div> : (mode === 'NEW_CHAPTER' ? `START (${formatFee(newChapterFee)})` : `WRITE ONCHAIN (${formatFee(appendFee)})`)}
                 </button>
             </div>
         </div>
