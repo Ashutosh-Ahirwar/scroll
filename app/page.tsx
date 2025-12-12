@@ -267,7 +267,6 @@ export default function OnchainScroll() {
                  onChange={(e) => setTextInput(e.target.value)} 
                />
             ) : (
-               // FIX: Changed input to textarea to allow horizontal wrapping
                <textarea 
                  rows={1}
                  placeholder="Title for the new chapter..." 
@@ -313,7 +312,6 @@ export default function OnchainScroll() {
                     <div className="flex-1 relative">
                         <textarea 
                             autoFocus
-                            // ADDED: whitespace-pre-wrap and break-words to force wrapping
                             className="w-full h-full bg-transparent text-xl md:text-2xl font-serif text-stone-800 placeholder-stone-300 resize-none outline-none leading-relaxed whitespace-pre-wrap break-words"
                             placeholder="Write your thoughts, a story, or a message..."
                             value={textInput}
@@ -322,13 +320,12 @@ export default function OnchainScroll() {
                         <div className={`absolute bottom-0 right-0 text-xs font-mono ${getCharCountColor()}`}>{textInput.length} / {MAX_CHARS}</div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex-1 flex flex-col justify-center items-center">
                         <textarea 
                             autoFocus
-                            rows={1}
+                            rows={2}
                             placeholder="Title for the new chapter..." 
-                            // ADDED: whitespace-pre-wrap and break-words
-                            className="w-full bg-transparent text-3xl md:text-4xl font-serif font-bold text-amber-900 placeholder-amber-900/20 outline-none text-center resize-none overflow-y-auto whitespace-pre-wrap break-words"
+                            className="w-full bg-transparent text-4xl md:text-6xl font-serif font-black text-amber-900 placeholder-amber-900/20 outline-none text-center resize-none overflow-visible whitespace-pre-wrap break-words leading-tight"
                             value={chapterTitleInput} 
                             onChange={(e) => setChapterTitleInput(e.target.value)} 
                         />
