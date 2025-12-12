@@ -258,12 +258,13 @@ export default function OnchainScroll() {
           </div>
 
           {/* COMPACT INPUT AREA */}
-          <div className="p-3 flex gap-2 items-center max-w-xl mx-auto h-[72px]">
+          <div className="p-3 flex gap-2 items-center max-w-xl mx-auto h-auto min-h-[72px]">
             {mode === 'APPEND' ? (
-               <input 
-                 type="text" 
+               // CHANGED: Replaced input with textarea for text wrapping
+               <textarea 
+                 rows={1}
                  placeholder="Write your thoughts, a story, or a message..." 
-                 className="flex-1 bg-white border border-stone-300 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 pl-4 font-serif placeholder-stone-400 shadow-sm pl-12" 
+                 className="flex-1 bg-white border border-stone-300 rounded-lg px-4 py-3 text-base leading-relaxed outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-serif placeholder-stone-400 shadow-sm resize-none h-12 min-h-[48px]"
                  value={textInput} 
                  onChange={(e) => setTextInput(e.target.value)} 
                />
