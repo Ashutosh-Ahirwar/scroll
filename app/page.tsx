@@ -55,7 +55,7 @@ export default function OnchainScroll() {
     load();
   }, []);
 
-  const { isConnected } = useAccount(); // Check connection
+  const { isConnected } = useAccount(); 
   const { writeContractAsync, isPending } = useWriteContract(); 
   
   // State
@@ -65,6 +65,7 @@ export default function OnchainScroll() {
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null); 
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // NEW: Error State
   
   // Navigation
   const [viewingChapterId, setViewingChapterId] = useState<number>(1);
@@ -99,35 +100,27 @@ export default function OnchainScroll() {
 
   const filteredEntries = chapterEntries || [];
 
-  // --- DEBUGGED WRITE FUNCTION ---
+  // --- ACTIONS ---
   const handleWrite = async () => {
-    console.log("Attempting write...");
+    setErrorMsg(null); // Clear previous errors
 
-    // 1. Check Inputs
-    if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) {
-      console.log("Input invalid or empty");
-      return;
-    }
-    if (mode === 'NEW_CHAPTER' && !chapterTitleInput) {
-      console.log("Chapter title missing");
-      return;
-    }
-
-    // 2. Check Fees (Common Silent Failure)
-    if (appendFee === undefined || newChapterFee === undefined) {
-      alert("Error: Fees not loaded from contract. Check your connection or contract address.");
-      console.error("Fees undefined. Contract Read Failed.");
-      return;
-    }
-
-    // 3. Check Wallet Connection
+    // 1. Check Wallet Connection
     if (!isConnected) {
-      alert("Please connect your wallet first (Click the Connect button in the header).");
+      setErrorMsg("Wallet disconnected. Please refresh or connect again.");
       return;
     }
+
+    // 2. Check Fees
+    if (appendFee === undefined || newChapterFee === undefined) {
+      setErrorMsg("Loading fees... Please wait a moment.");
+      return;
+    }
+
+    // 3. Check Inputs
+    if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) return;
+    if (mode === 'NEW_CHAPTER' && !chapterTitleInput) return;
 
     try {
-      console.log("Sending transaction...");
       let hash;
       if (mode === 'NEW_CHAPTER') {
         hash = await writeContractAsync({
@@ -149,7 +142,6 @@ export default function OnchainScroll() {
         });
       }
       
-      console.log("Transaction sent:", hash);
       setLastTxHash(hash); 
       setTextInput('');
       setChapterTitleInput('');
@@ -158,9 +150,8 @@ export default function OnchainScroll() {
       setTimeout(() => refetch(), 2000); 
 
     } catch (err: any) {
-      console.error("Transaction Failed:", err);
-      // Show the actual error message to the user
-      alert(`Transaction Failed: ${err.shortMessage || err.message || "Unknown error"}`);
+      console.error(err);
+      setErrorMsg(err.shortMessage || "Transaction failed. Try again.");
     }
   };
 
@@ -205,7 +196,7 @@ export default function OnchainScroll() {
   return (
     <div 
       className={`min-h-screen font-serif transition-colors duration-500 pb-40 ${mode === 'NEW_CHAPTER' ? 'bg-stone-50' : 'bg-[#f6f3eb]'}`}
-      onClick={() => setSelectedAuthor(null)}
+      onClick={() => { setSelectedAuthor(null); setErrorMsg(null); }}
     >
       
       {/* 1. HEADER (Wallet Auto-Detect) */}
@@ -247,23 +238,32 @@ export default function OnchainScroll() {
         </div>
       </main>
 
-      {/* 3. SHARE TO FARCASTER */}
-      {lastTxHash && (
-        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2 w-full max-w-sm px-4">
-          <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200">
+      {/* 3. SHARE & ERROR TOASTS */}
+      <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 w-full max-w-sm px-4">
+        
+        {/* Error Toast */}
+        {errorMsg && (
+            <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-xl animate-fade-in-up flex items-center gap-2">
+                <span>⚠️ {errorMsg}</span>
+                <button onClick={() => setErrorMsg(null)} className="opacity-70 hover:opacity-100 ml-2">✕</button>
+            </div>
+        )}
+
+        {/* Share Button */}
+        {lastTxHash && (
+          <div className="bg-white p-1 rounded-full shadow-2xl flex gap-2 w-full border border-stone-200 animate-bounce-in">
             <button onClick={shareCast} className="flex-1 bg-[#855DCD] hover:bg-[#7C56C1] text-white px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
                 <span>✨ Share Cast</span>
             </button>
             <button onClick={() => setLastTxHash(null)} className="bg-stone-100 hover:bg-stone-200 text-stone-600 w-12 rounded-full font-bold flex items-center justify-center transition-colors">✕</button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 4. COMPACT BOTTOM BAR */}
       {viewingChapterId === Number(currentChapterId) ? (
         <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]" onClick={(e) => e.stopPropagation()}>
           
-          {/* TABS & EXPAND */}
           <div className="flex border-b border-stone-100 relative">
             <button onClick={() => setMode('APPEND')} className={`flex-1 py-3 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-0.5 items-center justify-center ${mode === 'APPEND' ? 'text-stone-900 bg-stone-50 border-b-2 border-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>
               <span>ADD TO CHAPTER</span>
@@ -282,7 +282,6 @@ export default function OnchainScroll() {
             </button>
           </div>
 
-          {/* COMPACT INPUT AREA */}
           <div className="p-3 flex gap-2 items-center max-w-xl mx-auto h-auto min-h-[72px]">
             {mode === 'APPEND' ? (
                <textarea 
