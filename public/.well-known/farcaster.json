@@ -1,0 +1,40 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEzNzEyODgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg4NGM0N0JDNDBhNDY4MGI5QjFjM2I2YUY3ZkZjYjg4ODhkYzBEMzU3In0",
+    "payload": "eyJkb21haW4iOiJidWlsZGVyc2NvcmUudmVyY2VsLmFwcCJ9",
+    "signature": "MHhkNTA1OTg5YzFkOTVkRWZjYUU3Nzg0NzVENDk0RjVmNTE3NzZJZTQ2..."
+  },
+  "frame": {
+    "version": "1",
+    "name": "The Onchain Scroll",
+    "iconUrl": "https://your-domain.com/icon.png",
+    "homeUrl": "https://your-domain.com",
+    "imageUrl": "https://your-domain.com/hero.png",
+    "buttonTitle": "Write Onchain",
+    "splashImageUrl": "https://your-domain.com/splash.png",
+    "splashBackgroundColor": "#f4ecd8",
+    "webhookUrl": "https://your-domain.com/api/webhook",
+    "subtitle": "Immutable Onchain Canvas",
+    "description": "A permanent, decentralized scroll living entirely on Base. Inscribe your thoughts, stories, or manifestos directly onchain. No servers, just ink and blocks.",
+    "screenshotUrls": [
+      "https://your-domain.com/screenshot1.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "onchain",
+      "permanent",
+      "writing",
+      "scroll"
+    ],
+    "heroImageUrl": "https://your-domain.com/hero.png",
+    "tagline": "Inscribed forever on Base",
+    "ogTitle": "The Onchain Scroll",
+    "ogDescription": "Write directly onchain. Join the permanent collaborative scroll.",
+    "ogImageUrl": "https://your-domain.com/og-image.png",
+    "noindex": false
+  },
+  "baseBuilder": {
+    "ownerAddress": "0xd505989c1d95dEfcaE778475D494F5f51776Fe46"
+  }
+}

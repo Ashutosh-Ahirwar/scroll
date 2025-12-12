@@ -1,65 +1,313 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect, useRef } from 'react';
+import { useAccount, useReadContract, useWriteContract, useConnect } from 'wagmi'; 
+import { parseEther, formatEther } from 'viem';
+import { base } from 'wagmi/chains';
+import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from '@coinbase/onchainkit/wallet';
+import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
+import { ABI } from './abi';
+
+const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // <--- VERIFY THIS
+const MAX_CHARS = 20000;
+
+// --- COMPONENTS ---
+const StatusBar = ({ activeAuthor }: { activeAuthor: string | null }) => {
+  if (!activeAuthor) return null; 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-stone-900/90 backdrop-blur text-white px-4 py-2 rounded-full text-[10px] md:text-xs font-mono shadow-xl z-50 animate-fade-in-up pointer-events-none transition-opacity duration-300 flex items-center gap-2 border border-white/10">
+      <span className="opacity-60 uppercase tracking-wider">Written by</span>
+      <span className="text-amber-400 font-bold"><Identity address={activeAuthor as `0x${string}`}><Name /> <Address /></Identity></span>
+    </div>
+  );
+};
+
+const Spinner = () => (
+  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
+
+export default function OnchainScroll() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const { isConnected } = useAccount();
+  const { connectors, connect } = useConnect();
+  const { writeContractAsync, isPending } = useWriteContract(); 
+  
+  // State
+  const [textInput, setTextInput] = useState('');
+  const [chapterTitleInput, setChapterTitleInput] = useState('');
+  const [mode, setMode] = useState<'APPEND' | 'NEW_CHAPTER'>('APPEND');
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null); 
+  
+  // Navigation
+  const [viewingChapterId, setViewingChapterId] = useState<number>(1);
+  const [isJumpOpen, setIsJumpOpen] = useState(false);
+  const [jumpInput, setJumpInput] = useState('');
+  const [jumpError, setJumpError] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // --- DATA ---
+  const { data: appendFee } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'appendFee' });
+  const { data: newChapterFee } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'newChapterFee' });
+  const { data: currentChapterId } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'currentChapterId' });
+
+  useEffect(() => {
+    if (currentChapterId && viewingChapterId === 1) {
+      setViewingChapterId(Number(currentChapterId));
+    }
+  }, [currentChapterId]);
+
+  const { data: chapterEntries, refetch } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: ABI,
+    functionName: 'getChapterEntries',
+    args: [BigInt(viewingChapterId), BigInt(0), BigInt(2000)], 
+  });
+
+  const { data: viewingChapterDetails } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: ABI,
+    functionName: 'getChapterDetails',
+    args: [BigInt(viewingChapterId)],
+  });
+
+  const filteredEntries = chapterEntries || [];
+
+  // --- ACTIONS ---
+  const handleWrite = async () => {
+    if (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) return;
+    if (mode === 'NEW_CHAPTER' && !chapterTitleInput) return;
+    if (appendFee === undefined || newChapterFee === undefined) return;
+
+    try {
+      let hash;
+      if (mode === 'NEW_CHAPTER') {
+        hash = await writeContractAsync({
+          address: CONTRACT_ADDRESS,
+          abi: ABI,
+          functionName: 'startNewChapter',
+          args: [chapterTitleInput],
+          value: newChapterFee, 
+          chainId: base.id,
+        });
+      } else {
+        hash = await writeContractAsync({
+          address: CONTRACT_ADDRESS,
+          abi: ABI,
+          functionName: 'append',
+          args: [textInput],
+          value: appendFee,
+          chainId: base.id,
+        });
+      }
+      
+      setLastTxHash(hash); 
+      setTextInput('');
+      setChapterTitleInput('');
+      setMode('APPEND');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+      setTimeout(() => refetch(), 2000); 
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // --- WALLET CONNECTION FIX ---
+  const connectBrowserWallet = () => {
+    // 1. Look for the generic 'injected' connector (Warpcast/MetaMask/Phantom)
+    const injectedConnector = connectors.find((c) => c.id === 'injected');
+    
+    // 2. If not found by ID, look for any connector that isn't the Coinbase Smart Wallet
+    const fallbackConnector = connectors.find((c) => c.name !== 'Coinbase Wallet');
+
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
+    } else if (fallbackConnector) {
+      connect({ connector: fallbackConnector });
+    } else {
+      alert("No browser wallet detected.");
+    }
+  };
+
+  const goPrev = () => setViewingChapterId(prev => Math.max(1, prev - 1));
+  const goNext = () => setViewingChapterId(prev => Math.min(Number(currentChapterId || 1), prev + 1));
+  
+  const handleJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = Number(jumpInput);
+    const maxChapter = Number(currentChapterId || 1);
+    if (isNaN(val) || val <= 0 || val > maxChapter) {
+      setJumpError("Invalid");
+      return;
+    }
+    setViewingChapterId(val);
+    setIsJumpOpen(false);
+    setJumpError(null);
+  };
+
+  const getCharCountColor = () => {
+    if (textInput.length > MAX_CHARS) return 'text-red-500 font-bold';
+    if (textInput.length > MAX_CHARS * 0.9) return 'text-orange-500';
+    return 'text-stone-400';
+  };
+
+  const toggleAuthor = (author: string) => {
+    setSelectedAuthor(selectedAuthor === author ? null : author);
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setTextInput(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; 
+  };
+
+  const formatFee = (val: bigint | undefined) => {
+    if (!val) return '...';
+    return `${formatEther(val)} ETH`;
+  };
+
+  const shareCast = () => {
+    const text = `I just inscribed my story onchain in Chapter ${viewingChapterId} of The Scroll 📜\n\nRead it here:`;
+    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank');
+    setLastTxHash(null);
+  };
+
+  const closeShare = () => {
+    setLastTxHash(null);
+  };
+
+  return (
+    <div 
+      className={`min-h-screen font-serif transition-colors duration-500 pb-80 ${mode === 'NEW_CHAPTER' ? 'bg-stone-100' : 'bg-[#f6f3eb]'}`}
+      onClick={() => setSelectedAuthor(null)}
+    >
+      
+      {/* 1. HEADER */}
+      <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm transition-all duration-300" onClick={(e) => e.stopPropagation()}>
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <button onClick={goPrev} disabled={viewingChapterId <= 1} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">←</button>
+          
+          <div className="flex-1 flex flex-col items-center justify-center overflow-visible relative">
+             <div className="text-[10px] font-sans font-bold text-stone-400 tracking-[0.2em] mb-1">CHAPTER {viewingChapterId}</div>
+             {isJumpOpen ? (
+                <form onSubmit={handleJump} className="w-full max-w-[120px] relative">
+                  <input autoFocus type="number" placeholder="#" className="w-full text-center border-b-2 bg-transparent outline-none font-bold text-lg border-stone-900" value={jumpInput} onChange={e => { setJumpInput(e.target.value); setJumpError(null); }} onBlur={() => setTimeout(() => setIsJumpOpen(false), 200)} />
+                </form>
+             ) : (
+                <div onClick={() => setIsJumpOpen(true)} className="w-full flex flex-col items-center cursor-pointer hover:opacity-70 group">
+                  <h1 className="text-stone-900 font-bold text-lg leading-tight truncate w-full text-center max-w-[200px] md:max-w-xs group-hover:underline decoration-stone-300 underline-offset-4 decoration-2">{viewingChapterDetails?.title || "Loading..."}</h1>
+                </div>
+             )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button onClick={goNext} disabled={viewingChapterId >= Number(currentChapterId)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 disabled:opacity-20 text-stone-500 hover:text-stone-900 font-bold text-xl transition-colors">→</button>
+            {mounted && (
+                <div className="flex gap-2">
+                    {/* BROWSER WALLET BUTTON (For Warpcast / MetaMask) */}
+                    {!isConnected && (
+                        <button 
+                            onClick={connectBrowserWallet} 
+                            className="bg-stone-200 hover:bg-stone-300 text-stone-600 px-3 py-1.5 rounded-full font-sans text-xs font-bold transition-all"
+                        >
+                            Wallet
+                        </button>
+                    )}
+                    
+                    {/* SMART WALLET BUTTON (OnchainKit) */}
+                    <Wallet>
+                        <ConnectWallet className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-1.5 rounded-full font-sans text-xs font-bold shadow-sm">
+                            <Avatar className="h-5 w-5 rounded-full" />
+                            <Name className="ml-2" />
+                        </ConnectWallet>
+                        <WalletDropdown>
+                            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                                <Avatar />
+                                <Name />
+                                <Address />
+                            </Identity>
+                            <WalletDropdownDisconnect />
+                        </WalletDropdown>
+                    </Wallet>
+                </div>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </nav>
+
+      {/* 2. CONTENT */}
+      <main className="max-w-2xl mx-auto p-8 md:p-16 mt-6 bg-white shadow-xl min-h-[60vh] border border-stone-200/60 rounded-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 bg-[#fffdf5] opacity-50 pointer-events-none mix-blend-multiply"></div>
+        
+        <div className="relative z-10 prose prose-xl prose-stone leading-[2.1] text-justify text-stone-800 min-h-[300px] tracking-wide font-serif">
+          {filteredEntries.length > 0 ? (
+            filteredEntries.map((entry, i) => (
+               <span key={i} onClick={(e) => { e.stopPropagation(); toggleAuthor(entry.author); }} className={`cursor-pointer decoration-clone px-0.5 rounded-sm transition-all duration-200 whitespace-pre-wrap ${selectedAuthor === entry.author ? "bg-amber-200 text-stone-900 shadow-sm" : "hover:bg-stone-100 hover:text-stone-600"}`}>{entry.text}{" "}</span>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-stone-400 italic font-sans">
+               <p>This chapter is waiting for its first words...</p>
+            </div>
+          )}
+          {viewingChapterId === Number(currentChapterId) && <span className="inline-block w-0.5 h-6 bg-stone-900 animate-pulse align-middle ml-1 -translate-y-1"></span>}
         </div>
       </main>
+
+      {/* 3. SHARE TO FARCASTER */}
+      {lastTxHash && (
+        <div className="fixed bottom-40 left-1/2 -translate-x-1/2 z-50 animate-bounce-in flex items-center gap-2">
+          <button onClick={shareCast} className="bg-[#855DCD] hover:bg-[#7C56C1] text-white pl-6 pr-8 py-3 rounded-full font-bold shadow-2xl flex items-center gap-2 transform hover:scale-105 transition-all group">
+            <span>✨ Share on Farcaster</span>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3">↗</span>
+          </button>
+          <button onClick={closeShare} className="bg-stone-200 hover:bg-stone-300 text-stone-600 w-12 h-12 rounded-full font-bold shadow-lg flex items-center justify-center transition-colors">✕</button>
+        </div>
+      )}
+
+      {/* 4. ACTION BAR */}
+      {viewingChapterId === Number(currentChapterId) ? (
+        <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-stone-200 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex border-b border-stone-100">
+            <button onClick={() => setMode('APPEND')} className={`flex-1 py-4 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-1 items-center justify-center ${mode === 'APPEND' ? 'text-stone-900 bg-stone-50 border-b-2 border-stone-900' : 'text-stone-400 hover:text-stone-600'}`}>
+              <span>ADD TO CHAPTER ({formatFee(appendFee)})</span>
+            </button>
+            <button onClick={() => setMode('NEW_CHAPTER')} className={`flex-1 py-4 text-[10px] md:text-xs font-sans font-black uppercase tracking-widest transition-colors flex flex-col gap-1 items-center justify-center ${mode === 'NEW_CHAPTER' ? 'text-amber-700 bg-amber-50/50 border-b-2 border-amber-600' : 'text-stone-400 hover:text-stone-600'}`}>
+              <span>START NEW CHAPTER ({formatFee(newChapterFee)})</span>
+            </button>
+          </div>
+          <div className="p-4 flex gap-3 items-end max-w-xl mx-auto">
+            {mode === 'APPEND' ? (
+               <div className="flex-1 relative">
+                 <textarea ref={textareaRef} rows={1} placeholder="Write your thoughts, a story, or a message..." className="w-full bg-stone-100 border-0 rounded-xl px-4 py-3.5 pr-16 text-base leading-relaxed outline-none focus:ring-2 focus:ring-stone-900/20 resize-none min-h-[56px] transition-all pl-4 font-serif placeholder-stone-400" value={textInput} onChange={handleInput} />
+                 <div className={`absolute bottom-3 right-3 text-[10px] font-mono ${getCharCountColor()}`}>{textInput.length} / {MAX_CHARS}</div>
+               </div>
+            ) : (
+               <input type="text" placeholder="Title for the new chapter..." className="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-amber-500/30 text-amber-900 placeholder-amber-900/40 h-[56px] font-serif font-bold" value={chapterTitleInput} onChange={(e) => setChapterTitleInput(e.target.value)} />
+            )}
+            <button onClick={handleWrite} disabled={isPending || (mode === 'APPEND' && (!textInput || textInput.length > MAX_CHARS)) || (mode === 'NEW_CHAPTER' && !chapterTitleInput)} className={`h-[56px] px-6 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 flex flex-col items-center justify-center min-w-[100px] tracking-wide group ${mode === 'NEW_CHAPTER' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-stone-900 hover:bg-stone-800'} disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed`}>
+              {isPending ? <Spinner /> : (
+                <>
+                  <span className="text-xs md:text-sm">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE ONCHAIN'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="fixed bottom-0 left-0 w-full bg-stone-100/90 backdrop-blur-md text-stone-500 p-6 text-center text-xs font-sans font-bold border-t border-stone-200 z-50 pb-safe">
+          ARCHIVE MODE <span className="mx-2">•</span> <button onClick={() => setViewingChapterId(Number(currentChapterId))} className="text-stone-900 underline underline-offset-4 decoration-stone-400 hover:decoration-stone-900">JUMP TO PRESENT</button>
+        </div>
+      )}
+
+      <StatusBar activeAuthor={selectedAuthor} />
     </div>
   );
 }
