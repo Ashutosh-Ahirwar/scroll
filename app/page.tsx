@@ -157,6 +157,11 @@ export default function OnchainScroll() {
     setSelectedAuthor(selectedAuthor === author ? null : author);
   };
 
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setTextInput(e.target.value);
+    // Removed the auto-shrink logic to allow user resizing
+  };
+
   const formatFee = (val: bigint | undefined) => {
     if (!val) return '...';
     return `${formatEther(val)} ETH`;
@@ -223,7 +228,8 @@ export default function OnchainScroll() {
       <main className="max-w-2xl mx-auto p-8 md:p-16 mt-6 bg-white shadow-xl min-h-[60vh] border border-stone-200/60 rounded-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="absolute inset-0 bg-[#fffdf5] opacity-50 pointer-events-none mix-blend-multiply"></div>
         
-        <div className="relative z-10 prose prose-xl prose-stone leading-[2.1] text-justify text-stone-800 min-h-[300px] tracking-wide font-serif">
+        {/* IMPROVED: leading-[2.5] fixes the congested text highlighting */}
+        <div className="relative z-10 prose prose-xl prose-stone leading-[2.5] text-justify text-stone-800 min-h-[300px] tracking-wide font-serif">
           {filteredEntries.length > 0 ? (
             filteredEntries.map((entry, i) => (
                <span key={i} onClick={(e) => { e.stopPropagation(); toggleAuthor(entry.author); }} className={`cursor-pointer decoration-clone px-0.5 rounded-sm transition-all duration-200 whitespace-pre-wrap ${selectedAuthor === entry.author ? "bg-amber-200 text-stone-900 shadow-sm" : "hover:bg-stone-100 hover:text-stone-600"}`}>{entry.text}{" "}</span>
@@ -299,8 +305,7 @@ export default function OnchainScroll() {
             >
               {isPending ? <Spinner /> : (
                 <>
-                  <span className="text-xs md:text-sm font-black">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE'}</span>
-                  <span className="text-[10px] opacity-80 font-normal">ONCHAIN</span>
+                  <span className="text-xs md:text-sm font-black">{mode === 'NEW_CHAPTER' ? 'START' : 'WRITE ONCHAIN'}</span>
                 </>
               )}
             </button>
