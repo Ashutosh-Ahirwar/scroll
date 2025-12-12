@@ -7,7 +7,7 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ["latin"] });
 
 // ⚠️ IMPORTANT: REPLACE THIS WITH YOUR ACTUAL VERCEL DOMAIN
-const appUrl = 'https://onchain-scroll.vercel.app'; 
+const appUrl = 'https://scroll-opal-ten.vercel.app'; 
 
 export const metadata: Metadata = {
   title: "The Onchain Scroll",
