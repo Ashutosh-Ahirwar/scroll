@@ -1,20 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            // This "Nuclear Option" allows ALL connections, scripts, and styles.
-            value: "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';",
-          },
-        ],
-      },
-    ];
-  },
+  // We are NOT setting any 'headers' key here.
+  // This allows the app to have no restrictions.
 };
 
 export default nextConfig;
