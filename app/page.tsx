@@ -244,7 +244,6 @@ export default function OnchainScroll() {
               <span className="text-[9px] font-normal opacity-60">({formatFee(appendFee)})</span>
             </button>
             
-            {/* FULL SCREEN TRIGGER */}
             <div className="flex items-center justify-center px-2 bg-white border-x border-stone-100">
                 <button onClick={() => setIsFullScreen(true)} className="p-2 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-900 transition-colors" title="Open Full Screen Writer">
                     <ExpandIcon />
@@ -260,7 +259,6 @@ export default function OnchainScroll() {
           {/* COMPACT INPUT AREA */}
           <div className="p-3 flex gap-2 items-center max-w-xl mx-auto h-auto min-h-[72px]">
             {mode === 'APPEND' ? (
-               // CHANGED: Replaced input with textarea for text wrapping
                <textarea 
                  rows={1}
                  placeholder="Write your thoughts, a story, or a message..." 
@@ -269,10 +267,11 @@ export default function OnchainScroll() {
                  onChange={(e) => setTextInput(e.target.value)} 
                />
             ) : (
-               <input 
-                 type="text" 
+               // CHANGED: Replaced input with textarea for title too, ensuring wrap
+               <textarea 
+                 rows={1}
                  placeholder="Title for the new chapter..." 
-                 className="flex-1 bg-amber-50 border border-amber-200 rounded-lg px-4 h-12 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 font-serif font-bold shadow-sm" 
+                 className="flex-1 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-base outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-900/40 font-serif font-bold shadow-sm resize-none h-12 min-h-[48px] overflow-hidden" 
                  value={chapterTitleInput} 
                  onChange={(e) => setChapterTitleInput(e.target.value)} 
                />
@@ -323,11 +322,11 @@ export default function OnchainScroll() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col justify-center">
-                        <input 
+                        <textarea 
                             autoFocus
-                            type="text" 
+                            rows={1}
                             placeholder="Title for the new chapter..." 
-                            className="w-full bg-transparent text-3xl md:text-4xl font-serif font-bold text-amber-900 placeholder-amber-900/20 outline-none text-center"
+                            className="w-full bg-transparent text-3xl md:text-4xl font-serif font-bold text-amber-900 placeholder-amber-900/20 outline-none text-center resize-none overflow-hidden"
                             value={chapterTitleInput} 
                             onChange={(e) => setChapterTitleInput(e.target.value)} 
                         />

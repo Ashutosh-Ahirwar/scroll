@@ -7,17 +7,17 @@
   "frame": {
     "version": "1",
     "name": "The Onchain Scroll",
-    "iconUrl": "https://your-domain.com/icon.png",
-    "homeUrl": "https://your-domain.com",
-    "imageUrl": "https://your-domain.com/hero.png",
+    "iconUrl": "https://scroll-opal-ten.vercel.app/icon.png",
+    "homeUrl": "https://scroll-opal-ten.vercel.app",
+    "imageUrl": "https://scroll-opal-ten.vercel.app/hero.png",
     "buttonTitle": "Write Onchain",
-    "splashImageUrl": "https://your-domain.com/splash.png",
+    "splashImageUrl": "https://scroll-opal-ten.vercel.app/splash.png",
     "splashBackgroundColor": "#f4ecd8",
-    "webhookUrl": "https://your-domain.com/api/webhook",
+    "webhookUrl": "https://scroll-opal-ten.vercel.app/api/webhook",
     "subtitle": "Immutable Onchain Canvas",
     "description": "A permanent, decentralized scroll living entirely on Base. Inscribe your thoughts, stories, or manifestos directly onchain. No servers, just ink and blocks.",
     "screenshotUrls": [
-      "https://your-domain.com/screenshot1.png"
+      "https://scroll-opal-ten.vercel.app/screenshot1.png"
     ],
     "primaryCategory": "social",
     "tags": [
@@ -27,11 +27,11 @@
       "writing",
       "scroll"
     ],
-    "heroImageUrl": "https://your-domain.com/hero.png",
+    "heroImageUrl": "https://scroll-opal-ten.vercel.app/hero.png",
     "tagline": "Inscribed forever on Base",
     "ogTitle": "The Onchain Scroll",
     "ogDescription": "Write directly onchain. Join the permanent collaborative scroll.",
-    "ogImageUrl": "https://your-domain.com/og-image.png",
+    "ogImageUrl": "https://scroll-opal-ten.vercel.app/hero.png",
     "noindex": false
   },
   "baseBuilder": {
