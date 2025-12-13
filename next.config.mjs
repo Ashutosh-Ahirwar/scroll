@@ -35,7 +35,7 @@ const nextConfig = {
             // UPDATED POLICY:
             // 1. style-src: Added 'https://fonts.googleapis.com' for Google Fonts
             // 2. font-src: Added 'https://fonts.gstatic.com' for the actual font files
-            // 3. connect-src: Added 'https://explorer-api.walletconnect.com' (WalletConnect) and Datadog
+            // 3. connect-src: Added 'https://explorer-api.walletconnect.com' and Datadog intake domains
             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://*.walletconnect.com https://*.walletconnect.org https://explorer-api.walletconnect.com https://cca-lite.coinbase.com https://*.datadoghq.com https://*.browser-intake-datadoghq.com; img-src 'self' data: blob: https:; frame-src 'self' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;",
           },
         ],
