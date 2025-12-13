@@ -36,7 +36,7 @@ const StatusBar = ({ activeAuthor }: { activeAuthor: string | null }) => {
     <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-stone-900/95 backdrop-blur-md text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-mono shadow-2xl z-50 animate-fade-in-up pointer-events-none transition-opacity duration-300 flex items-center gap-3 border border-white/10 ring-1 ring-black/20">
       <span className="opacity-60 uppercase tracking-widest text-[9px]">Written by</span>
       <span className="text-amber-400 font-bold flex items-center gap-2">
-        {/* FIX: Add key={authorAddress} to force a refresh when the writer changes */}
+        {/* FIX: The 'key' prop forces React to refresh data for the new author */}
         <Identity address={authorAddress} key={authorAddress}>
             <Avatar className="w-4 h-4 rounded-full border border-amber-400/30" />
             <Name /> 
