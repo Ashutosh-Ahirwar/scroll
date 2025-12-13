@@ -6,26 +6,29 @@ import { Providers } from './providers';
 
 const inter = Inter({ subsets: ["latin"] });
 
-// Use environment variable for the URL, fallback to localhost
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://scroll-opal-ten.vercel.app'; 
+// URL from your provided JSON
+const appUrl = 'https://scroll-opal-ten.vercel.app';
 
 export const metadata: Metadata = {
   title: "The Onchain Scroll",
-  description: "A collaborative history book on Base. Write your legacy onchain.",
+  description: "A permanent, decentralized scroll living entirely on Base. Inscribe your thoughts, stories, or manifestos directly onchain. No servers, just ink and blocks.",
   openGraph: {
     title: "The Onchain Scroll",
-    description: "Write your legacy on the permanent collaborative scroll.",
+    description: "Write directly onchain. Join the permanent collaborative scroll.",
     images: [`${appUrl}/hero.png`],
   },
   other: {
-    // UPDATED: New "fc:miniapp" standard (was fc:frame)
+    // 1. Base App ID (Required for verification)
+    "base:app_id": "693d3acfd77c069a945bde4f", // <--- ADDED THIS LINE
+
+    // 2. Farcaster Mini App Metadata
     "fc:miniapp": JSON.stringify({
-      version: "1", // UPDATED: Must be "1", not "next"
+      version: "1",
       imageUrl: `${appUrl}/hero.png`,
       button: {
         title: "Write Onchain",
         action: {
-          type: "launch_miniapp", // UPDATED: New action name
+          type: "launch_miniapp",
           name: "The Onchain Scroll",
           url: appUrl,
           splashImageUrl: `${appUrl}/splash.png`,
