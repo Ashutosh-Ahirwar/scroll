@@ -13,8 +13,11 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        {/* API Key is optional for testing, but needed for OnchainKit analytics later */}
-        <OnchainKitProvider chain={base}>
+        {/* API Key added from env vars for full OnchainKit features */}
+        <OnchainKitProvider 
+          chain={base}
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+        >
           {children}
         </OnchainKitProvider>
       </QueryClientProvider>
