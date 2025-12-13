@@ -20,20 +20,23 @@ const nextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: '*', // Allows Farcaster to load your frame
+            value: '*', 
           },
           {
             key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS', // FIX: Explicitly allow methods
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization', // FIX: Allow common headers
+            value: 'Content-Type, Authorization',
           },
           {
             key: 'Content-Security-Policy',
-            // Allows WalletConnect, Coinbase, and other necessary scripts
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://*.walletconnect.com https://*.walletconnect.org https://cca-lite.coinbase.com https://*.datadoghq.com; img-src 'self' data: blob: https:; frame-src 'self' https:; style-src 'self' 'unsafe-inline';",
+            // UPDATED POLICY:
+            // 1. style-src: Added 'https://fonts.googleapis.com' for Google Fonts
+            // 2. font-src: Added 'https://fonts.gstatic.com' for the actual font files
+            // 3. connect-src: Added 'https://explorer-api.walletconnect.com' (WalletConnect) and Datadog
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://*.walletconnect.com https://*.walletconnect.org https://explorer-api.walletconnect.com https://cca-lite.coinbase.com https://*.datadoghq.com https://*.browser-intake-datadoghq.com; img-src 'self' data: blob: https:; frame-src 'self' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;",
           },
         ],
       },
