@@ -6,8 +6,8 @@ import { Providers } from './providers';
 
 const inter = Inter({ subsets: ["latin"] });
 
-// ⚠️ IMPORTANT: REPLACE THIS WITH YOUR ACTUAL VERCEL DOMAIN
-const appUrl = 'https://scroll-opal-ten.vercel.app'; 
+// Use environment variable for the URL, fallback to localhost
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://scroll-opal-ten.vercel.app'; 
 
 export const metadata: Metadata = {
   title: "The Onchain Scroll",
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
     images: [`${appUrl}/hero.png`],
   },
   other: {
-    // STANDARD FRAME V2 EMBED TAG
-    "fc:frame": JSON.stringify({
-      version: "next",
+    // UPDATED: New "fc:miniapp" standard (was fc:frame)
+    "fc:miniapp": JSON.stringify({
+      version: "1", // UPDATED: Must be "1", not "next"
       imageUrl: `${appUrl}/hero.png`,
       button: {
         title: "Write Onchain",
         action: {
-          type: "launch_frame",
+          type: "launch_miniapp", // UPDATED: New action name
           name: "The Onchain Scroll",
           url: appUrl,
           splashImageUrl: `${appUrl}/splash.png`,

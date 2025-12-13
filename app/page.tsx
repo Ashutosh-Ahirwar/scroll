@@ -5,7 +5,8 @@ import { useAccount, useReadContract, useWriteContract, useConnect } from 'wagmi
 import { parseEther, formatEther } from 'viem';
 import { base } from 'wagmi/chains';
 import { Identity, Avatar, Name, Address } from '@coinbase/onchainkit/identity';
-import sdk from '@farcaster/frame-sdk';
+// UPDATED: New SDK import
+import { sdk } from '@farcaster/miniapp-sdk';
 import { ABI } from './abi';
 
 const CONTRACT_ADDRESS = '0xdFce3a2874277607bd03A7C7C125c8E7024E35d5'; // Base Mainnet
@@ -58,6 +59,7 @@ export default function OnchainScroll() {
   useEffect(() => {
     const load = async () => {
       setMounted(true);
+      // SDK usage remains the same, just the import source changed
       try { await sdk.actions.ready(); } catch (err) { console.warn("Not in Farcaster", err); }
     };
     load();
@@ -80,6 +82,7 @@ export default function OnchainScroll() {
   const [isJumpOpen, setIsJumpOpen] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
   const [jumpError, setJumpError] = useState<string | null>(null);
+  const [userHasNavigated, setUserHasNavigated] = useState(false);
 
   // --- DATA ---
   const { data: appendFee } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'appendFee' });
@@ -87,10 +90,11 @@ export default function OnchainScroll() {
   const { data: currentChapterId } = useReadContract({ address: CONTRACT_ADDRESS, abi: ABI, functionName: 'currentChapterId' });
 
   useEffect(() => {
-    if (currentChapterId && viewingChapterId === 1) {
+    // CHANGE 3: Only auto-jump to latest chapter if user hasn't navigated themselves
+    if (currentChapterId && viewingChapterId === 1 && !userHasNavigated) {
       setViewingChapterId(Number(currentChapterId));
     }
-  }, [currentChapterId]);
+  }, [currentChapterId, userHasNavigated, viewingChapterId]);
 
   const { data: chapterEntries, refetch } = useReadContract({
     address: CONTRACT_ADDRESS,
