@@ -8,8 +8,10 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            // "Nuclear" policy: Allows everything (wildcards) + eval + inline scripts/styles
-            value: "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';",
+            // Updated Policy:
+            // 1. connect-src: Added walletconnect.com (RPCs), coinbase.com (analytics), and datadoghq.com (logging)
+            // 2. img-src: Added blob: and data: for wallet icons
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://*.walletconnect.com https://*.walletconnect.org https://cca-lite.coinbase.com https://*.datadoghq.com; img-src 'self' data: blob: https:; frame-src 'self' https:; style-src 'self' 'unsafe-inline';",
           },
           {
             key: 'Access-Control-Allow-Origin',
